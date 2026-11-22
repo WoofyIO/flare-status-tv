@@ -1,0 +1,9 @@
+Flare Status TV
+Copyright 2026 the Flare Status TV contributors
+
+This is original software. It contains no code from UptimeFlare; it reads the
+data that an UptimeFlare status page publishes.
+
+UptimeFlare (https://github.com/lyc8503/UptimeFlare) is a separate project by
+lyc8503 and its contributors, licensed under the Apache License 2.0. This
+project is not affiliated with or endorsed by UptimeFlare or Cloudflare.

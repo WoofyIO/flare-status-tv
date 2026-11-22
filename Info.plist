@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The app's only cryptography is standard HTTPS through URLSession. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!-- Self-hosted UptimeFlare deployments on the local network may be plain
+	     http (an IP address or a .local name). Everything else must be https. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+</dict>
+</plist>

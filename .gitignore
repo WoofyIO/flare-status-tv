@@ -1,0 +1,13 @@
+# Local signing settings (team id, bundle id) and scratch output
+Config/Local.xcconfig
+build/
+tmp/
+.build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+.DS_Store
+.swiftpm/
+*.ipa
+*.xcarchive
+*.p8

@@ -1,0 +1,12 @@
+// Copy this file to Config/Local.xcconfig and fill in your own values.
+// Local.xcconfig is git-ignored; never commit it.
+
+// Your Apple Developer team id (10 characters), from
+// https://developer.apple.com/account -> Membership details.
+DEVELOPMENT_TEAM = ABCDE12345
+
+// A bundle identifier you own. It must be unique on your team.
+PRODUCT_BUNDLE_IDENTIFIER = com.example.flarestatus.tv
+
+// Optional: a different name under the home screen icon.
+// APP_DISPLAY_NAME = Flare Status TV

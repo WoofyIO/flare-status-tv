@@ -1,0 +1,1 @@
+{"up":2,"down":1,"updatedAt":1780000000,"monitors":{"web":{"up":true,"latency":125,"location":"SEA","message":"OK"},"api":{"up":false,"latency":0,"location":"NRT","message":"Connection refused"},"db":{"up":true,"latency":9,"location":"push","message":"OK"}}}

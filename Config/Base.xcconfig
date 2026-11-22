@@ -1,0 +1,18 @@
+// Build settings shared by every configuration.
+//
+// Signing identity and bundle identifier are personal, so they are not set
+// here. Copy Local.xcconfig.example to Local.xcconfig (git-ignored) and fill
+// in your own values; anything set there overrides the defaults below.
+
+// The name shown under the icon on the Apple TV home screen.
+APP_DISPLAY_NAME = Flare Status TV
+
+MARKETING_VERSION = 1.0.0
+// The build number. scripts/testflight.sh overrides it per upload.
+CURRENT_PROJECT_VERSION = 1
+
+// Placeholders: enough to build and run in the tvOS Simulator.
+PRODUCT_BUNDLE_IDENTIFIER = com.example.flarestatus.tv
+DEVELOPMENT_TEAM =
+
+#include? "Local.xcconfig"
