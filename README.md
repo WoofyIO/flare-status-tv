@@ -32,9 +32,14 @@ The screenshots use invented sample data (`-demo outage`, `-demo large`).
   outages with their reasons.
 
 It refreshes by itself (every minute by default), keeps the last good data on
-screen when a refresh fails, keeps the Apple TV awake while it is open, and,
-when nobody touches the remote, moves through the page so a long list is seen
-in full. You can add more than one status page and switch between them, or
+screen when a refresh fails, and keeps the Apple TV awake while it is open.
+
+When nobody has touched the remote for a minute and a half, it walks down the
+page a couple of rows every eight seconds, reaches the last group, and starts
+again from the top, so a page several screens tall is seen in full. It does
+this by moving the focus, which is how tvOS scrolls. Pressing anything on the
+remote stops it at once; it resumes from wherever you left the focus. Settings
+has a switch for it (on by default). You can add more than one status page and switch between them, or
 have the app rotate through them.
 
 ## Requirements
@@ -105,7 +110,18 @@ cd FlareStatusKit && swift test
 # build and test for the tvOS Simulator
 xcodebuild test -project FlareStatus.xcodeproj -scheme FlareStatus \
   -destination 'platform=tvOS Simulator,name=Apple TV 4K (3rd generation)'
+
+# UI tests: drive the app with the remote (Settings, idle tour); a few minutes
+xcodebuild test -project FlareStatus.xcodeproj -scheme FlareStatusUITests \
+  -destination 'platform=tvOS Simulator,name=Apple TV 4K (3rd generation)' \
+  -parallel-testing-enabled NO
 ```
+
+The UI tests use the sample data. To run the idle-tour tests against a real
+status page, and to keep the screenshots they take, pass
+`TEST_RUNNER_STATUS_URL=https://status.example.com` and
+`TEST_RUNNER_SCREENSHOT_DIR=/some/folder` in the environment of `xcodebuild`.
+They are not part of CI, which runs the unit tests and a simulator build.
 
 ## Point it at your status page
 
@@ -136,6 +152,7 @@ Product > Scheme > Edit Scheme > Run > Arguments):
 
 - `-demo healthy`, `-demo outage`, `-demo single` or `-demo large`: invented data, no network.
 - `-url https://status.example.com`: show this page without saving it.
+- `-idleSeconds 5 -tourSeconds 2`: shorten the wait before the idle tour and the pause at each stop.
 
 ## TestFlight
 
@@ -171,6 +188,7 @@ accounts, no advertising and no third-party code, and it sends nothing except
 | --- | --- |
 | `FlareStatusKit/` | Swift package: decoding of both UptimeFlare storage formats, the model, the HTTP client, sample data. No UI. Unit tested. |
 | `FlareStatus/` | The SwiftUI tvOS app. |
+| `FlareStatusUITests/` | UI tests that drive the app with the remote. |
 | `Config/` | Build settings. `Local.xcconfig` (yours, untracked) overrides `Base.xcconfig`. |
 | `scripts/make-fixtures.mjs` | Regenerates the invented test fixtures. |
 | `scripts/make-artwork.swift` | Draws the app icon and Top Shelf images. |

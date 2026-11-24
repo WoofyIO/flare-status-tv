@@ -42,6 +42,9 @@ enum Route: Hashable {
     case monitor(String)
     case settings
     case addPage
+    case refreshInterval
+    case pageCycle
+    case about
 }
 
 struct RootView: View {
@@ -65,9 +68,25 @@ struct RootView: View {
                                     .font(.system(size: 32))
                             }
                         case .settings:
-                            SettingsView(addPage: { path.append(.addPage) })
+                            SettingsView(open: { path.append($0) })
                         case .addPage:
                             SetupView(isFirstRun: false, onDone: { path.removeAll() })
+                        case .refreshInterval:
+                            ChoiceListView(
+                                title: "Refresh every",
+                                choices: AppModel.refreshChoices.map { ($0, Format.duration($0)) },
+                                selection: $model.refreshSeconds,
+                                footer: "UptimeFlare checks its monitors once a minute, so a shorter interval rarely shows anything sooner.",
+                                done: { if path.last == .refreshInterval { path.removeLast() } })
+                        case .pageCycle:
+                            ChoiceListView(
+                                title: "Switch between pages",
+                                choices: AppModel.cycleChoices.map { ($0, SettingsView.cycleLabel($0)) },
+                                selection: $model.cycleMinutes,
+                                footer: nil,
+                                done: { if path.last == .pageCycle { path.removeLast() } })
+                        case .about:
+                            AboutView()
                         }
                     }
             }
@@ -92,6 +111,7 @@ struct RootView: View {
         guard let target = UserDefaults.standard.string(forKey: "open") else { return [] }
         switch target {
         case "settings": return [.settings]
+        case "about": return [.settings, .about]
         case "add": return [.settings, .addPage]
         default: return [.monitor(target)]
         }

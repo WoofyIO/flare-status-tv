@@ -10,17 +10,33 @@
 		F5000000000000000000000C /* FlareStatusKit in Frameworks */ = {isa = PBXBuildFile; productRef = F5000000000000000000000D /* FlareStatusKit */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		F6000000000000000000000A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F5000000000000000000000A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F50000000000000000000005;
+			remoteInfo = FlareStatus;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		F50000000000000000000002 /* FlareStatus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FlareStatus.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5000000000000000000000E /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Base.xcconfig; path = Config/Base.xcconfig; sourceTree = "<group>"; };
 		F5000000000000000000000F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F50000000000000000000010 /* FlareStatusKit */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = FlareStatusKit; sourceTree = "<group>"; };
+		F60000000000000000000002 /* FlareStatusUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FlareStatusUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		F50000000000000000000001 /* FlareStatus */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = FlareStatus;
+			sourceTree = "<group>";
+		};
+		F60000000000000000000001 /* FlareStatusUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = FlareStatusUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -34,6 +50,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F60000000000000000000008 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -41,6 +64,7 @@
 			isa = PBXGroup;
 			children = (
 				F50000000000000000000001 /* FlareStatus */,
+				F60000000000000000000001 /* FlareStatusUITests */,
 				F50000000000000000000010 /* FlareStatusKit */,
 				F5000000000000000000000E /* Base.xcconfig */,
 				F5000000000000000000000F /* Info.plist */,
@@ -52,6 +76,7 @@
 			isa = PBXGroup;
 			children = (
 				F50000000000000000000002 /* FlareStatus.app */,
+				F60000000000000000000002 /* FlareStatusUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -82,6 +107,27 @@
 			productReference = F50000000000000000000002 /* FlareStatus.app */;
 			productType = "com.apple.product-type.application";
 		};
+		F60000000000000000000005 /* FlareStatusUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F60000000000000000000006 /* Build configuration list for PBXNativeTarget "FlareStatusUITests" */;
+			buildPhases = (
+				F60000000000000000000007 /* Sources */,
+				F60000000000000000000008 /* Frameworks */,
+				F60000000000000000000009 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F6000000000000000000000B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				F60000000000000000000001 /* FlareStatusUITests */,
+			);
+			name = FlareStatusUITests;
+			productName = FlareStatusUITests;
+			productReference = F60000000000000000000002 /* FlareStatusUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -94,6 +140,10 @@
 				TargetAttributes = {
 					F50000000000000000000005 = {
 						CreatedOnToolsVersion = 16.0;
+					};
+					F60000000000000000000005 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = F50000000000000000000005;
 					};
 				};
 			};
@@ -112,12 +162,20 @@
 			projectRoot = "";
 			targets = (
 				F50000000000000000000005 /* FlareStatus */,
+				F60000000000000000000005 /* FlareStatusUITests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		F50000000000000000000009 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F60000000000000000000009 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -134,7 +192,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F60000000000000000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F6000000000000000000000B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F50000000000000000000005 /* FlareStatus */;
+			targetProxy = F6000000000000000000000A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		F500000000000000000000B1 /* Debug */ = {
@@ -228,6 +301,34 @@
 			};
 			name = Release;
 		};
+		F600000000000000000000B3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(inherited).uitests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_TARGET_NAME = FlareStatus;
+			};
+			name = Debug;
+		};
+		F600000000000000000000B4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(inherited).uitests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				TEST_TARGET_NAME = FlareStatus;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -245,6 +346,15 @@
 			buildConfigurations = (
 				F500000000000000000000B1 /* Debug */,
 				F500000000000000000000B2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F60000000000000000000006 /* Build configuration list for PBXNativeTarget "FlareStatusUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F600000000000000000000B3 /* Debug */,
+				F600000000000000000000B4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
