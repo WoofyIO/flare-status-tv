@@ -53,9 +53,12 @@ final class AppModel: ObservableObject {
     init(defaults: UserDefaults = .standard, demo: SampleData.Scenario? = nil) {
         self.defaults = defaults
         self.demo = demo
-        refreshSeconds = defaults.object(forKey: Keys.refresh) as? Int ?? 60
+        // integer(forKey:) also reads a value given on the command line, which arrives as text.
+        let storedRefresh = defaults.integer(forKey: Keys.refresh)
+        refreshSeconds = AppModel.refreshChoices.contains(storedRefresh) ? storedRefresh : 60
         autoScroll = defaults.object(forKey: Keys.autoScroll) as? Bool ?? true
-        cycleMinutes = defaults.object(forKey: Keys.cycle) as? Int ?? 0
+        let storedCycle = defaults.integer(forKey: Keys.cycle)
+        cycleMinutes = AppModel.cycleChoices.contains(storedCycle) ? storedCycle : 0
         if let demo {
             pages = [PageConfig(url: URL(string: "https://status.example.com/")!)]
             selectedPageID = pages[0].id
@@ -237,11 +240,13 @@ final class AppModel: ObservableObject {
     }
 
     private func save() {
-        guard demo == nil, !transient else { return }
-        if let data = try? JSONEncoder().encode(pages) { defaults.set(data, forKey: Keys.pages) }
-        defaults.set(selectedPageID?.uuidString, forKey: Keys.selected)
+        // Display settings are always kept; the page list is not when it is
+        // only the sample page or a page given on the command line.
         defaults.set(refreshSeconds, forKey: Keys.refresh)
         defaults.set(autoScroll, forKey: Keys.autoScroll)
         defaults.set(cycleMinutes, forKey: Keys.cycle)
+        guard demo == nil, !transient else { return }
+        if let data = try? JSONEncoder().encode(pages) { defaults.set(data, forKey: Keys.pages) }
+        defaults.set(selectedPageID?.uuidString, forKey: Keys.selected)
     }
 }

@@ -11,13 +11,20 @@ struct DashboardView: View {
 
     @FocusState private var focusedID: String?
     @State private var lastInteraction = Date()
-    @State private var tourIndex = 0
+    @State private var lastTourStep = Date.distantPast
+    /// The tile the idle tour last asked for, to tell its moves from those of a person.
     @State private var tourFocus: String?
+    @State private var isOnScreen = false
 
-    /// Seconds without remote input before the idle scroll starts.
-    static var idleSeconds: TimeInterval {
-        let override = UserDefaults.standard.double(forKey: "idleSeconds")
-        return override > 0 ? override : 90
+    /// Seconds without remote input before the idle tour starts.
+    static var idleSeconds: TimeInterval { DashboardView.launchValue("idleSeconds", default: 90) }
+    /// Seconds the idle tour rests on each stop.
+    static var tourSeconds: TimeInterval { DashboardView.launchValue("tourSeconds", default: 8) }
+
+    /// `-idleSeconds 3 -tourSeconds 1` on the command line shortens the waits, for tests.
+    private static func launchValue(_ key: String, default value: TimeInterval) -> TimeInterval {
+        let override = UserDefaults.standard.double(forKey: key)
+        return override > 0 ? override : value
     }
 
     var body: some View {
@@ -25,31 +32,38 @@ struct DashboardView: View {
         let layout = Layout(monitorCount: snapshot.monitors.count)
         let sections = snapshot.sections
         let down = snapshot.downMonitors
-        // The first tile of every block: where the idle tour moves the focus.
-        let stops = (down.first.map { ["down-\($0.id)"] } ?? []) + sections.compactMap { $0.monitors.first?.id }
+        let downTiles = down.map { "down-\($0.id)" }
+        let sectionTiles = sections.map { $0.monitors.map(\.id) }
+        // Where the idle tour moves the focus, and the order tiles appear in.
+        let tour = Tour(
+            stops: IdleTour.stops(leading: downTiles, sections: sectionTiles, columns: layout.columns),
+            order: downTiles + sectionTiles.flatMap { $0 })
 
         VStack(spacing: 0) {
             BannerView(snapshot: snapshot, state: model.state, pageHost: model.selectedPage?.host, openSettings: openSettings)
                 .padding(.horizontal, 80)
                 .padding(.top, 50)
                 .padding(.bottom, 26)
+                // Pressing up from any tile lands on the gear.
+                .focusSection()
 
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 44) {
+                // Not lazy on purpose: the idle tour focuses tiles that are far
+                // off screen, and a tile that has not been built cannot take focus.
+                VStack(alignment: .leading, spacing: 44) {
                     ForEach(snapshot.activeMaintenances(at: now)) { maintenance in
                         MaintenanceNotice(maintenance: maintenance, snapshot: snapshot, upcoming: false)
                     }
                     if !down.isEmpty {
                         VStack(alignment: .leading, spacing: 20) {
-                            SectionHeader(title: "Down now", trailing: "\(down.count) of \(snapshot.monitors.count)", color: Theme.down)
-                            LazyVGrid(columns: Layout.columns(down.count == 1 ? 1 : 2, spacing: 28), spacing: 28) {
-                                ForEach(down) { monitor in
-                                    Button { openDetail(monitor) } label: {
-                                        DownCard(monitor: monitor, now: now)
-                                    }
-                                    .buttonStyle(TileButtonStyle(fill: Theme.downFill, cornerRadius: 24, focusScale: down.count == 1 ? 1.015 : 1.03))
-                                    .focused($focusedID, equals: "down-\(monitor.id)")
+                            SectionHeader(title: "Down now", trailing: "\(down.count) of \(snapshot.monitors.count)", color: Theme.down, identifier: "down-now")
+                            TileRows(items: down, columns: down.count == 1 ? 1 : 2, spacing: 28) { monitor in
+                                Button { openDetail(monitor) } label: {
+                                    DownCard(monitor: monitor, now: now)
                                 }
+                                .buttonStyle(TileButtonStyle(fill: Theme.downFill, cornerRadius: 24, focusScale: down.count == 1 ? 1.015 : 1.03))
+                                .focused($focusedID, equals: "down-\(monitor.id)")
+                                .accessibilityIdentifier("down-\(monitor.id)")
                             }
                         }
                     }
@@ -59,20 +73,20 @@ struct DashboardView: View {
                                 SectionHeader(
                                     title: name,
                                     trailing: "\(section.upCount)/\(section.monitors.count) operational",
-                                    color: section.downCount == 0 ? Theme.up : (section.upCount == 0 ? Theme.down : Theme.warning))
+                                    color: section.downCount == 0 ? Theme.up : (section.upCount == 0 ? Theme.down : Theme.warning),
+                                    identifier: "group-\(name)")
                             }
-                            LazyVGrid(columns: Layout.columns(layout.columns, spacing: layout.spacing), spacing: layout.spacing) {
-                                ForEach(section.monitors) { monitor in
-                                    Button { openDetail(monitor) } label: {
-                                        MonitorCard(
-                                            monitor: monitor,
-                                            name: Format.shortName(monitor.name, inGroup: section.name),
-                                            status: snapshot.status(of: monitor, at: now),
-                                            layout: layout, now: now)
-                                    }
-                                    .buttonStyle(TileButtonStyle(focusScale: layout.columns == 1 ? 1.015 : (layout.columns == 2 ? 1.03 : 1.045)))
-                                    .focused($focusedID, equals: monitor.id)
+                            TileRows(items: section.monitors, columns: layout.columns, spacing: layout.spacing) { monitor in
+                                Button { openDetail(monitor) } label: {
+                                    MonitorCard(
+                                        monitor: monitor,
+                                        name: Format.shortName(monitor.name, inGroup: section.name),
+                                        status: snapshot.status(of: monitor, at: now),
+                                        layout: layout, now: now)
                                 }
+                                .buttonStyle(TileButtonStyle(focusScale: layout.columns == 1 ? 1.015 : (layout.columns == 2 ? 1.03 : 1.045)))
+                                .focused($focusedID, equals: monitor.id)
+                                .accessibilityIdentifier("monitor-\(monitor.id)")
                             }
                         }
                     }
@@ -83,31 +97,45 @@ struct DashboardView: View {
                 .padding(.horizontal, 80)
                 .padding(.top, 24)
                 .padding(.bottom, 80)
-            }
-            .task(id: stops) {
-                // When nobody has touched the remote for a while, move the
-                // focus from block to block so a long page is seen in full.
-                // Moving the focus is how tvOS scrolls.
-                while !Task.isCancelled {
-                    try? await Task.sleep(nanoseconds: 12_000_000_000)
-                    guard model.autoScroll, stops.count > 1,
-                          Date().timeIntervalSince(lastInteraction) > DashboardView.idleSeconds
-                    else { continue }
-                    tourIndex = (tourIndex + 1) % stops.count
-                    tourFocus = stops[tourIndex]
-                    focusedID = stops[tourIndex]
-                }
+                .focusSection()
             }
         }
         .ignoresSafeArea()
         .background(Theme.background.ignoresSafeArea())
+        .onAppear {
+            isOnScreen = true
+            lastInteraction = Date()
+        }
+        .onDisappear { isOnScreen = false }
         .onChange(of: focusedID) {
             // Focus moved by the tour is not a person using the remote.
             guard focusedID != tourFocus else { return }
             lastInteraction = Date()
-            tourIndex = 0
             tourFocus = nil
         }
+        .task(id: tour) {
+            // When nobody has touched the remote for a while, move the focus
+            // down the page a few rows at a time, then start again at the top,
+            // so a page of several screens is seen in full. Moving the focus
+            // is how tvOS scrolls.
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                let now = Date()
+                guard isOnScreen, model.autoScroll, tour.stops.count > 1,
+                      now.timeIntervalSince(lastInteraction) >= DashboardView.idleSeconds,
+                      now.timeIntervalSince(lastTourStep) >= DashboardView.tourSeconds,
+                      let next = IdleTour.next(after: focusedID, stops: tour.stops, order: tour.order)
+                else { continue }
+                lastTourStep = now
+                tourFocus = next
+                focusedID = next
+            }
+        }
+    }
+
+    private struct Tour: Equatable {
+        let stops: [String]
+        let order: [String]
     }
 
     /// How dense the grid is, from one huge tile to a wall of sixty.
@@ -131,9 +159,6 @@ struct DashboardView: View {
             spacing = columns >= 4 ? 22 : 28
         }
 
-        static func columns(_ count: Int, spacing: CGFloat) -> [GridItem] {
-            Array(repeating: GridItem(.flexible(), spacing: spacing, alignment: .top), count: max(1, count))
-        }
     }
 }
 
@@ -141,15 +166,46 @@ private struct SectionHeader: View {
     let title: String
     let trailing: String
     let color: Color
+    let identifier: String
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(title)
                 .font(.system(size: 38, weight: .bold))
+                .accessibilityIdentifier(identifier)
             Spacer()
             Text(trailing)
                 .font(.system(size: 28, weight: .semibold))
                 .foregroundStyle(color)
+        }
+    }
+}
+
+/// A grid built from plain rows. Every tile exists from the start, which a
+/// lazy grid does not guarantee.
+private struct TileRows<Item: Identifiable, Tile: View>: View {
+    let items: [Item]
+    let columns: Int
+    let spacing: CGFloat
+    @ViewBuilder let tile: (Item) -> Tile
+
+    var body: some View {
+        let columns = max(1, columns)
+        let rowStarts = Array(stride(from: 0, to: items.count, by: columns))
+        VStack(spacing: spacing) {
+            ForEach(rowStarts, id: \.self) { start in
+                HStack(alignment: .top, spacing: spacing) {
+                    ForEach(0..<columns, id: \.self) { column in
+                        if start + column < items.count {
+                            tile(items[start + column])
+                                .frame(maxWidth: .infinity)
+                        } else {
+                            Color.clear
+                                .frame(maxWidth: .infinity, maxHeight: 1)
+                        }
+                    }
+                }
+            }
         }
     }
 }
