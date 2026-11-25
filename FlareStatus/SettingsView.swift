@@ -12,6 +12,19 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("Status pages") {
+                if model.isSample {
+                    Button {
+                        model.leaveSample()
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Leave sample data")
+                            Text("These monitors are invented. Leave to set up your own status page.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .accessibilityIdentifier("settings-leave-sample")
+                }
                 ForEach(model.pages) { page in
                     Button {
                         model.select(page.id)
@@ -24,7 +37,7 @@ struct SettingsView: View {
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
-                            if page.id == model.selectedPageID {
+                            if page.id == model.selectedPageID, !model.isSample {
                                 Image(systemName: "checkmark")
                                     .foregroundStyle(Theme.up)
                             }
@@ -37,7 +50,7 @@ struct SettingsView: View {
                     Label("Add a status page", systemImage: "plus")
                 }
                 .accessibilityIdentifier("settings-add-page")
-                if let page = model.selectedPage, model.demo == nil {
+                if let page = model.selectedPage {
                     Button(role: .destructive) {
                         model.removePage(page.id)
                     } label: {
@@ -151,26 +164,34 @@ struct AboutView: View {
     @EnvironmentObject private var model: AppModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 34) {
+        VStack(alignment: .leading, spacing: 26) {
             Text("Flare Status")
-                .font(.system(size: 64, weight: .heavy))
+                .font(.system(size: 60, weight: .heavy))
             VStack(alignment: .leading, spacing: 18) {
                 row("Version", SettingsView.version)
                 row("Data format", dataFormat)
-                row("Status page", model.selectedPage?.host ?? "–")
+                row("Status page", model.isSample ? "Sample data" : (model.selectedPage?.host ?? "–"))
             }
             Text("Flare Status is an unofficial viewer for UptimeFlare status pages. It is not affiliated with the UptimeFlare project.")
-                .font(.system(size: 30))
+                .font(.system(size: 28))
                 .foregroundStyle(Theme.secondaryText)
-            Text("It talks only to the status pages you add in Settings. It has no accounts, no analytics and no advertising.")
-                .font(.system(size: 30))
-                .foregroundStyle(Theme.secondaryText)
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Privacy")
+                    .font(.system(size: 32, weight: .bold))
+                Text("The app collects no data. It talks only to the status pages you add in Settings: it sends them ordinary web requests, with the password you entered if the page has one. It has no accounts, no analytics, no advertising and no third-party code. Addresses and settings stay on this Apple TV; passwords are kept in its Keychain.")
+                    .font(.system(size: 28))
+                    .foregroundStyle(Theme.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                row("Privacy policy", AppLinks.privacyPolicy)
+                row("Help and contact", AppLinks.support)
+            }
             Text("Press Menu to go back.")
                 .font(.system(size: 24))
                 .foregroundStyle(Theme.secondaryText.opacity(0.7))
         }
-        .frame(maxWidth: 1300, alignment: .leading)
-        .padding(90)
+        .frame(maxWidth: 1500, alignment: .leading)
+        .padding(.horizontal, 90)
+        .padding(.vertical, 50)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .background(Theme.background.ignoresSafeArea())
         // Nothing here needs focus, but tvOS wants something to hold it.
@@ -190,8 +211,16 @@ struct AboutView: View {
                 .frame(width: 320, alignment: .leading)
             Text(value)
                 .font(.system(size: 32, weight: .bold))
+                .fixedSize()
         }
     }
+}
+
+/// Where the public pages for this app live. tvOS has no web browser, so these
+/// are shown as text to type into another device.
+enum AppLinks {
+    static let privacyPolicy = "github.com/WoofyIO/flare-status-tv/blob/main/PRIVACY.md"
+    static let support = "github.com/WoofyIO/flare-status-tv/blob/main/SUPPORT.md"
 }
 
 #Preview {

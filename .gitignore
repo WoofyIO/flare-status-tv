@@ -11,3 +11,5 @@ xcuserdata/
 *.ipa
 *.xcarchive
 *.p8
+# App Store listing work: screenshots, listing text, App Store Connect script
+store/

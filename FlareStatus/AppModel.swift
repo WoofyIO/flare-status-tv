@@ -39,8 +39,11 @@ final class AppModel: ObservableObject {
     /// small live endpoint.
     static let fullRefreshSeconds: TimeInterval = 600
 
-    /// Set for previews, screenshots and the demo mode: no network.
-    let demo: SampleData.Scenario?
+    /// Set while the app shows invented sample data instead of a status page:
+    /// "Try with sample data" on the setup screen, previews and screenshots.
+    /// Nothing is fetched from the network in this mode.
+    @Published private(set) var sample: SampleData.Scenario?
+    var isSample: Bool { sample != nil }
 
     private let defaults: UserDefaults
     private var cache: [UUID: PageState] = [:]
@@ -52,7 +55,7 @@ final class AppModel: ObservableObject {
 
     init(defaults: UserDefaults = .standard, demo: SampleData.Scenario? = nil) {
         self.defaults = defaults
-        self.demo = demo
+        sample = demo
         // integer(forKey:) also reads a value given on the command line, which arrives as text.
         let storedRefresh = defaults.integer(forKey: Keys.refresh)
         refreshSeconds = AppModel.refreshChoices.contains(storedRefresh) ? storedRefresh : 60
@@ -60,10 +63,7 @@ final class AppModel: ObservableObject {
         let storedCycle = defaults.integer(forKey: Keys.cycle)
         cycleMinutes = AppModel.cycleChoices.contains(storedCycle) ? storedCycle : 0
         if let demo {
-            pages = [PageConfig(url: URL(string: "https://status.example.com/")!)]
-            selectedPageID = pages[0].id
             state = PageState(snapshot: SampleData.snapshot(demo), lastSuccess: Date())
-            return
         }
         if let data = defaults.data(forKey: Keys.pages),
            let stored = try? JSONDecoder().decode([PageConfig].self, from: data) {
@@ -85,8 +85,29 @@ final class AppModel: ObservableObject {
         selectedPageID = page.id
     }
 
-    var selectedPage: PageConfig? { pages.first { $0.id == selectedPageID } }
-    var isConfigured: Bool { !pages.isEmpty }
+    var selectedPage: PageConfig? { isSample ? nil : pages.first { $0.id == selectedPageID } }
+    /// False until there is something to show: a status page or the sample data.
+    var isConfigured: Bool { isSample || !pages.isEmpty }
+
+    // MARK: Sample data
+
+    /// Shows invented monitors, so the app can be explored without a status page.
+    func startSample(_ scenario: SampleData.Scenario = .outage) {
+        if let current = selectedPageID, !isSample { cache[current] = state }
+        sample = scenario
+        state = PageState(snapshot: SampleData.snapshot(scenario), lastSuccess: Date())
+        restartRefreshing()
+        restartCycling()
+    }
+
+    /// Back to the real pages, or to the setup screen when there are none.
+    func leaveSample() {
+        guard isSample else { return }
+        sample = nil
+        state = selectedPageID.flatMap { cache[$0] } ?? PageState()
+        restartRefreshing()
+        restartCycling()
+    }
 
     // MARK: Pages
 
@@ -116,15 +137,18 @@ final class AppModel: ObservableObject {
         Keychain.setPassword(nil, account: id.uuidString)
         if selectedPageID == id {
             selectedPageID = pages.first?.id
-            state = selectedPageID.flatMap { cache[$0] } ?? PageState()
-            restartRefreshing()
+            if !isSample {
+                state = selectedPageID.flatMap { cache[$0] } ?? PageState()
+                restartRefreshing()
+            }
         }
         save()
     }
 
     func select(_ id: UUID) {
         guard pages.contains(where: { $0.id == id }) else { return }
-        if let current = selectedPageID { cache[current] = state }
+        if let current = selectedPageID, !isSample { cache[current] = state }
+        sample = nil
         selectedPageID = id
         state = cache[id] ?? PageState()
         save()
@@ -132,7 +156,7 @@ final class AppModel: ObservableObject {
     }
 
     func title(for page: PageConfig) -> String {
-        let snapshot = page.id == selectedPageID ? state.snapshot : cache[page.id]?.snapshot
+        let snapshot = (page.id == selectedPageID && !isSample) ? state.snapshot : cache[page.id]?.snapshot
         return snapshot?.title ?? page.host
     }
 
@@ -156,7 +180,18 @@ final class AppModel: ObservableObject {
 
     private func restartRefreshing() {
         refreshTask?.cancel()
-        guard demo == nil, let page = selectedPage else { return }
+        if let sample {
+            // Keep the invented data looking live: rebuild it around the current time.
+            refreshTask = Task { [weak self] in
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 30_000_000_000)
+                    guard !Task.isCancelled, let self, self.sample == sample else { return }
+                    self.state = PageState(snapshot: SampleData.snapshot(sample), lastSuccess: Date())
+                }
+            }
+            return
+        }
+        guard let page = selectedPage else { return }
         refreshTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self else { return }
@@ -213,7 +248,7 @@ final class AppModel: ObservableObject {
 
     private func restartCycling() {
         cycleTask?.cancel()
-        guard demo == nil, cycleMinutes > 0 else { return }
+        guard !isSample, cycleMinutes > 0 else { return }
         cycleTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let minutes = self?.cycleMinutes, minutes > 0 else { return }
@@ -241,11 +276,11 @@ final class AppModel: ObservableObject {
 
     private func save() {
         // Display settings are always kept; the page list is not when it is
-        // only the sample page or a page given on the command line.
+        // a page given on the command line.
         defaults.set(refreshSeconds, forKey: Keys.refresh)
         defaults.set(autoScroll, forKey: Keys.autoScroll)
         defaults.set(cycleMinutes, forKey: Keys.cycle)
-        guard demo == nil, !transient else { return }
+        guard !transient else { return }
         if let data = try? JSONEncoder().encode(pages) { defaults.set(data, forKey: Keys.pages) }
         defaults.set(selectedPageID?.uuidString, forKey: Keys.selected)
     }

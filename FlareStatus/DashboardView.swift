@@ -6,6 +6,8 @@ import SwiftUI
 struct DashboardView: View {
     @EnvironmentObject private var model: AppModel
     let snapshot: StatusSnapshot
+    /// Set while sample data is shown: leaves it and returns to setup.
+    var leaveSample: (() -> Void)? = nil
     var openDetail: (Monitor) -> Void
     var openSettings: () -> Void
 
@@ -40,7 +42,9 @@ struct DashboardView: View {
             order: downTiles + sectionTiles.flatMap { $0 })
 
         VStack(spacing: 0) {
-            BannerView(snapshot: snapshot, state: model.state, pageHost: model.selectedPage?.host, openSettings: openSettings)
+            BannerView(
+                snapshot: snapshot, state: model.state, pageHost: model.selectedPage?.host,
+                leaveSample: leaveSample, openSettings: openSettings)
                 .padding(.horizontal, 80)
                 .padding(.top, 50)
                 .padding(.bottom, 26)
@@ -215,6 +219,7 @@ struct BannerView: View {
     let snapshot: StatusSnapshot
     let state: PageState
     let pageHost: String?
+    var leaveSample: (() -> Void)? = nil
     var openSettings: () -> Void
 
     var body: some View {
@@ -243,6 +248,24 @@ struct BannerView: View {
                         .minimumScaleFactor(0.7)
                 }
                 Spacer(minLength: 20)
+                if let leaveSample {
+                    // Sample data must never be mistaken for a real status page.
+                    Button(action: leaveSample) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Label("Sample data", systemImage: "theatermasks.fill")
+                                .font(.system(size: 28, weight: .heavy))
+                                .foregroundStyle(Theme.warning)
+                            Text("Select to set up your own page")
+                                .font(.system(size: 20, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.8))
+                        }
+                        .padding(.horizontal, 26)
+                        .frame(height: 84)
+                    }
+                    .buttonStyle(TileButtonStyle(fill: Theme.warning.opacity(0.16), cornerRadius: 42, focusScale: 1.03))
+                    .accessibilityIdentifier("sample-data-badge")
+                    .accessibilityLabel("Sample data. Select to set up your own page.")
+                }
                 Button(action: openSettings) {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 34))
@@ -263,7 +286,7 @@ struct BannerView: View {
     }
 
     private func subline(now: Date, stale: Bool) -> String {
-        let name = snapshot.title ?? pageHost ?? "Status"
+        let name = (snapshot.title ?? pageHost ?? "Status") + (leaveSample == nil ? "" : " (sample data)")
         let checked = "checked \(Format.ago(snapshot.lastUpdateDate, now: now))"
         if let error = state.error {
             return "\(name)  ·  \(error.title)  ·  last data \(Format.ago(snapshot.lastUpdateDate, now: now))"
@@ -279,6 +302,15 @@ struct BannerView: View {
 private struct DownCard: View {
     let monitor: Monitor
     let now: Date
+
+    private var spokenLabel: String {
+        var parts = [monitor.name, "down"]
+        if let error = monitor.currentError { parts.append(error) }
+        if let since = monitor.downSince {
+            parts.append("for \(Format.duration(Int(now.timeIntervalSince1970) - since))")
+        }
+        return parts.joined(separator: ", ")
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 22) {
@@ -305,6 +337,8 @@ private struct DownCard: View {
         .foregroundStyle(.white)
         .padding(30)
         .frame(maxWidth: .infinity, minHeight: 170, alignment: .topLeading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spokenLabel)
     }
 }
 
@@ -346,6 +380,22 @@ private struct MonitorCard: View {
         .foregroundStyle(.white)
         .padding(layout.padding)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spokenLabel(uptime: uptime))
+    }
+
+    private func spokenLabel(uptime: Double?) -> String {
+        let state: String
+        switch status {
+        case .up: state = "operational"
+        case .down: state = "down"
+        case .maintenance: state = "under maintenance"
+        case .unknown: state = "no data yet"
+        }
+        var parts = [name, state]
+        if status == .up, let latency = Format.latency(for: monitor) { parts.append(latency) }
+        if uptime != nil { parts.append("uptime \(Format.percent(uptime))") }
+        return parts.joined(separator: ", ")
     }
 
     private var detail: String {

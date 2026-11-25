@@ -56,6 +56,23 @@ struct SetupView: View {
                 }
                 .disabled(isChecking || address.trimmingCharacters(in: .whitespaces).isEmpty)
                 .padding(.top, 14)
+                .accessibilityIdentifier("setup-connect")
+
+                if isFirstRun {
+                    Button {
+                        model.startSample()
+                    } label: {
+                        Text("Try with sample data")
+                            .font(.system(size: 28, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .disabled(isChecking)
+                    .accessibilityIdentifier("setup-try-sample")
+                    Text("No status page yet? Look around with invented monitors. You can come back here at any time.")
+                        .font(.system(size: 22))
+                        .foregroundStyle(Theme.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 if let error {
                     VStack(alignment: .leading, spacing: 8) {

@@ -7,7 +7,9 @@ final class SettingsUITests: RemoteTestCase {
     private func openSettingsWithTheRemote() {
         launch(demo: "healthy")
         XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 30))
-        press(.up, until: { app.buttons["Settings"].hasFocus }, "the gear should be reachable by pressing up")
+        press(.up, until: { app.buttons["Settings"].hasFocus || app.buttons["sample-data-badge"].hasFocus },
+              "the top bar should be reachable by pressing up")
+        press(.right, until: { app.buttons["Settings"].hasFocus }, "the gear should be reachable from the top bar")
         remote.press(.select)
         XCTAssertTrue(refreshRow.waitForExistence(timeout: 5), "Settings did not open")
     }
@@ -75,12 +77,17 @@ final class SettingsUITests: RemoteTestCase {
         XCTAssertTrue(note.isHittable, "the About text is off screen")
         XCTAssertTrue(app.staticTexts["Version"].isHittable)
         XCTAssertTrue(app.staticTexts["Data format"].isHittable)
+        // The privacy policy must be easy to find inside the app (App Review 5.1.1).
+        let policy = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'PRIVACY.md'")).firstMatch
+        XCTAssertTrue(policy.exists && policy.isHittable, "the privacy policy address is not on screen")
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'collects no data'")).firstMatch.isHittable)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'SUPPORT.md'")).firstMatch.isHittable)
         screenshot("settings-about")
 
         remote.press(.menu)
         XCTAssertTrue(refreshRow.waitForExistence(timeout: 5), "Menu should return to Settings")
 
         // And back up to the top.
-        press(.up, until: { focusIs(on: "Example Status") }, "focus should climb back to the page list")
+        press(.up, until: { focusIs(on: "Leave sample data") }, "focus should climb back to the top of Settings")
     }
 }

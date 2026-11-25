@@ -52,6 +52,13 @@ struct RootView: View {
     @State private var path: [Route] = RootView.initialPath
 
     var body: some View {
+        root
+            // Entering or leaving the sample data starts again from the top.
+            .onChange(of: model.isSample) { path.removeAll() }
+    }
+
+    @ViewBuilder
+    private var root: some View {
         if !model.isConfigured {
             SetupView(isFirstRun: true)
         } else {
@@ -98,6 +105,7 @@ struct RootView: View {
         if let snapshot = model.state.snapshot {
             DashboardView(
                 snapshot: snapshot,
+                leaveSample: model.isSample ? { model.leaveSample() } : nil,
                 openDetail: { path.append(.monitor($0.id)) },
                 openSettings: { path.append(.settings) })
         } else {
