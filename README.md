@@ -134,6 +134,9 @@ If the deployment sets `passwordProtection: 'user:password'`, enter the two
 halves as user name and password. The password is stored in the Apple TV's
 Keychain; everything else is stored in the app's preferences.
 
+No status page yet? **Try with sample data** on the same screen shows invented
+monitors, labelled as sample data, so you can look around first.
+
 The app checks the address by loading it and tells you what went wrong if it
 cannot: a malformed address, a server that cannot be reached, a page that is
 not UptimeFlare, a wrong password, or a deployment that has no data yet.
@@ -178,9 +181,15 @@ timestamp.
 
 ## Privacy
 
-The app talks only to the status pages you add. It has no analytics, no
-accounts, no advertising and no third-party code, and it sends nothing except
-`GET` requests to those pages (with the password you entered, if any).
+The app collects no data. It talks only to the status pages you add: it has no
+analytics, no accounts, no advertising and no third-party code, and it sends
+nothing except `GET` requests to those pages (with the password you entered,
+if any). The full policy is in [PRIVACY.md](PRIVACY.md).
+
+## Support
+
+See [SUPPORT.md](SUPPORT.md), or open an
+[issue](https://github.com/WoofyIO/flare-status-tv/issues).
 
 ## Project layout
 
